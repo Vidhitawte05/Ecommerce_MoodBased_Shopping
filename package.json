@@ -10,7 +10,9 @@
   },
   "prisma": {
   "engines": {
-    "queryEngine": "rhel-openssl-3.0.x"
+    "queryEngine": "rhel-openssl-3.0.x",
+    "introspectionEngine": "rhel-openssl-3.0.x",
+    "migrationEngine": "rhel-openssl-3.0.x"
   }
 },
   "dependencies": {
