@@ -6,7 +6,7 @@
   "dev": "next dev",
   "build": "cross-env NODE_ENV=production next build",
   "start": "node server.js",
-  "postinstall": "prisma generate && npm rebuild"
+  "postinstall": "prisma generate"
 },
   "prisma": {
   "engines": {
