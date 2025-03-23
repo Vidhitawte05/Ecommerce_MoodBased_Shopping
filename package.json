@@ -3,11 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "cross-env NODE_ENV=production next build",
-    "start": "node server.js",
-    "postinstall": "prisma generate"
-  },
+  "dev": "next dev",
+  "build": "cross-env NODE_ENV=production next build",
+  "start": "node server.js",
+  "postinstall": "prisma generate && npm rebuild"
+},
   "prisma": {
   "engines": {
     "queryEngine": "rhel-openssl-3.0.x",
