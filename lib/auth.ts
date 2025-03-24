@@ -51,3 +51,16 @@ export function getCurrentUser(request: Request): JwtPayload | null {
   return verifyToken(token)
 }
 
+// Add the missing removeAuthCookie function
+export function removeAuthCookie() {
+  if (typeof window === "undefined") {
+    const cookieStore = cookies()
+    // Delete the auth cookie by setting it to expire in the past
+    cookieStore.set("auth_token", "", {
+      expires: new Date(0),
+      path: "/",
+    })
+  }
+  return { success: true }
+}
+
