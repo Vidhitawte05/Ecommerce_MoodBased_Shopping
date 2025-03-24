@@ -14,7 +14,24 @@ import { useAuth } from "@/contexts/AuthContext"
 import { useRouter } from "next/navigation"
 
 // Mock product data for fallback
-const mockProducts = {
+const mockProducts: Record<string, {
+  id: number;
+  name: string;
+  price: number;
+  images: string[];
+  description: string;
+  details: {
+    material: string;
+    dimensions: string;
+    pages: string;
+    features: string;
+  };
+  moods: string[];
+  rating: number;
+  reviews: number;
+  stock: number;
+  shipping: string;
+}> = {
   "1": {
     id: 1,
     name: "Idea Journal",
@@ -70,10 +87,10 @@ export default function ProductPage({ params }: { params: { productId: string } 
           setProduct(data.product)
         } else {
           // If API doesn't return a product, check our mock data
-         const productId = params.productId; // Keep as string
-          if (mockProducts[productId]) {
-          setProduct(mockProducts[productId]);
-            }
+         const productId = params.productId as keyof typeof mockProducts; // Assert as key
+if (mockProducts[productId]) {
+  setProduct(mockProducts[productId]);
+}
   else {
             // Create a generic product if not found
             setProduct({
