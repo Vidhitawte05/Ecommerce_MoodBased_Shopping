@@ -4,7 +4,6 @@ import { useState, useEffect } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
@@ -20,7 +19,7 @@ const mockProducts = {
     id: 1,
     name: "Idea Journal",
     price: 19.99,
-    images: ["/idea_journal.webp?height=600&width=600", "/idea_journal2.webp?height=600&width=600"],
+    images: ["/placeholder.svg?height=600&width=600", "/placeholder.svg?height=600&width=600"],
     description:
       "Unlock your creativity with this beautifully designed idea journal. Perfect for brainstorming, sketching, and capturing your thoughts.",
     details: {
@@ -128,7 +127,6 @@ export default function ProductPage({ params }: { params: { productId: string } 
     fetchProduct()
   }, [params.productId])
 
-  // Rest of the component remains the same...
   // Check if product is in wishlist
   useEffect(() => {
     if (isAuthenticated && product) {
@@ -491,61 +489,6 @@ export default function ProductPage({ params }: { params: { productId: string } 
             </div>
           </TabsContent>
         </Tabs>
-      </div>
-
-      {/* Related Products */}
-      <div className="mt-16">
-        <h2 className="text-2xl font-bold mb-8">You Might Also Like</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {/* Show related products based on the current product's mood */}
-          {[
-            {
-              id: (product.id % 8) + 1,
-              name: "Related Product 1",
-              price: 24.99,
-              image: "/placeholder.svg?height=300&width=300",
-              rating: 4.5,
-            },
-            {
-              id: ((product.id + 1) % 8) + 1,
-              name: "Related Product 2",
-              price: 34.99,
-              image: "/placeholder.svg?height=300&width=300",
-              rating: 4.3,
-            },
-            {
-              id: ((product.id + 2) % 8) + 1,
-              name: "Related Product 3",
-              price: 19.99,
-              image: "/placeholder.svg?height=300&width=300",
-              rating: 4.7,
-            },
-            {
-              id: ((product.id + 3) % 8) + 1,
-              name: "Related Product 4",
-              price: 29.99,
-              image: "/placeholder.svg?height=300&width=300",
-              rating: 4.2,
-            },
-          ].map((relatedProduct) => (
-            <Card key={`related-${relatedProduct.id}`} className="overflow-hidden">
-              <Link href={`/products/${relatedProduct.id}`}>
-                <div className="aspect-square relative">
-                  <Image
-                    src={relatedProduct.image || "/placeholder.svg"}
-                    alt={relatedProduct.name}
-                    fill
-                    className="object-cover"
-                  />
-                </div>
-                <CardContent className="p-4">
-                  <h3 className="font-medium">{relatedProduct.name}</h3>
-                  <p className="font-semibold mt-2">${relatedProduct.price.toFixed(2)}</p>
-                </CardContent>
-              </Link>
-            </Card>
-          ))}
-        </div>
       </div>
     </div>
   )
