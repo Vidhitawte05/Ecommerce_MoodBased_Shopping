@@ -18,6 +18,7 @@ type AuthContextType = {
   signup: (name: string, email: string, password: string) => Promise<boolean>;
   logout: () => void;
   signOut: () => void;
+  signIn: (email: string, password: string) => Promise<boolean>; 
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
