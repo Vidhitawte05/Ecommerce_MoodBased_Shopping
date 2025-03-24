@@ -10,11 +10,12 @@ async function main() {
 
     console.log("Migrations completed successfully")
 
-    // Generate Prisma client
-    console.log("Generating Prisma client...")
-    execSync("npx prisma generate", { stdio: "inherit" })
-
-    console.log("Prisma client generated successfully")
+    // Optionally seed the database
+    if (process.env.SEED_DB === "true") {
+      console.log("Seeding the database...")
+      execSync("npx prisma db seed", { stdio: "inherit" })
+      console.log("Database seeded successfully")
+    }
 
     process.exit(0)
   } catch (error) {
