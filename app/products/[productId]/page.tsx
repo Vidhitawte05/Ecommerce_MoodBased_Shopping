@@ -70,9 +70,10 @@ export default function ProductPage({ params }: { params: { productId: string } 
           setProduct(data.product)
         } else {
           // If API doesn't return a product, check our mock data
-          if (mockProducts[params.productId]) {
-            setProduct(mockProducts[params.productId])
-          } else {
+         const productId = Number(params.productId); // Convert to number
+          if (mockProducts[productId]) {
+          setProduct(mockProducts[productId]);
+      }   else {
             // Create a generic product if not found
             setProduct({
               id: Number(params.productId),
