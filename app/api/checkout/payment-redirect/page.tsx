@@ -12,8 +12,8 @@ export default function PaymentRedirectPage() {
   const [status, setStatus] = useState<"processing" | "success" | "error">("processing")
   const [message, setMessage] = useState("Processing your payment...")
 
-  const paymentId = searchParams.get("paymentId")
-  const amount = searchParams.get("amount")
+  const paymentId = searchParams?.get("paymentId") ?? ""; // Default to an empty string
+  const amount = searchParams?.get("amount") ?? "0"; 
 
   useEffect(() => {
     if (!paymentId || !amount) {
