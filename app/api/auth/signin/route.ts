@@ -1,9 +1,9 @@
-import { NextResponse } from "next/server"
+import { type NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
-import { createSecureToken } from "@/lib/auth"
 import bcrypt from "bcryptjs"
+import { createSecureToken } from "@/lib/auth"
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
     const { email, password } = await request.json()
 
@@ -19,7 +19,7 @@ export async function POST(request: Request) {
         id: true,
         email: true,
         name: true,
-        password: true, // Get the password for comparison
+        password: true,
       },
     })
 
@@ -35,10 +35,10 @@ export async function POST(request: Request) {
     }
 
     // Generate token
-    const token = createSecureToken(user.id)
+    const token = createSecureToken(user.id, user.email, user.name)
 
-    // Return user data and token
-    return NextResponse.json({
+    // Set cookie for server-side auth
+    const response = NextResponse.json({
       user: {
         id: user.id,
         email: user.email,
@@ -46,6 +46,19 @@ export async function POST(request: Request) {
       },
       token,
     })
+
+    // Set HTTP-only cookie
+    response.cookies.set({
+      name: "auth_token",
+      value: token,
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 60 * 60 * 24 * 7, // 7 days
+      path: "/",
+    })
+
+    return response
   } catch (error) {
     console.error("Signin error:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
