@@ -15,6 +15,7 @@ type AuthContextType = {
   isAuthenticated: boolean
   isLoading: boolean
   login: (email: string, password: string) => Promise<boolean>
+  signIn?: (email: string, password: string) => Promise<void>;
   signup: (name: string, email: string, password: string) => Promise<boolean>
   logout: () => void
 }
@@ -68,7 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     checkAuth()
   }, [])
 
-  const login = async (email: string, password: string) => {
+  const signIn = async (email: string, password: string) => {
     try {
       const response = await fetch("/api/auth/signin", {
         method: "POST",
