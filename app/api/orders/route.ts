@@ -1,213 +1,114 @@
-import { NextResponse } from "next/server"
+import { type NextRequest, NextResponse } from "next/server"
+import prisma from "@/lib/prisma"
 import { verifyToken } from "@/lib/auth"
 
-// Mock database for orders - we'll make it persist across sessions
-const getOrderDb = () => {
-  if (typeof window !== "undefined") {
-    try {
-      const savedOrders = localStorage.getItem("persistentOrderDb")
-      if (savedOrders) {
-        return JSON.parse(savedOrders)
-      }
-    } catch (error) {
-      console.error("Error loading orders from storage:", error)
-    }
-  }
-  return {}
-}
-
-// Initialize with saved data or empty object
-let orderDb = getOrderDb()
-let orderIdCounter = 1000
-
-// Helper to save orders to localStorage
-const saveOrderDb = () => {
-  if (typeof window !== "undefined") {
-    try {
-      localStorage.setItem("persistentOrderDb", JSON.stringify(orderDb))
-    } catch (error) {
-      console.error("Error saving orders to storage:", error)
-    }
-  }
-}
-
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
-    // Get the Authorization header
-    const authHeader = request.headers.get("Authorization")
+    // Get the authorization header
+    const authHeader = request.headers.get("authorization")
 
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    // Extract and verify the token
     const token = authHeader.split(" ")[1]
     const payload = verifyToken(token)
 
-    if (!payload) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    if (!payload || !payload.userId) {
+      return NextResponse.json({ error: "Invalid token" }, { status: 401 })
     }
 
-    // Get the user's orders
-    const userId = payload.userId
-
-    // Refresh from localStorage in case it was updated in another tab
-    orderDb = getOrderDb()
-
-    // Return mock orders if none exist
-    if (!orderDb[userId] || Object.keys(orderDb[userId]).length === 0) {
-      const mockOrders = [
-        {
-          id: "ORD-123456",
-          userId: userId,
-          status: "delivered",
-          total: 99.98,
-          createdAt: new Date().toISOString(),
-          items: [
-            {
-              id: "item1",
-              productId: 1,
-              quantity: 1,
-              price: 19.99,
-              product: {
-                id: 1,
-                name: "Idea Journal",
-                images: ["/placeholder.svg?height=300&width=300"],
+    // Get orders for the authenticated user
+    const orders = await prisma.order.findMany({
+      where: {
+        userId: payload.userId,
+      },
+      include: {
+        items: {
+          include: {
+            product: {
+              select: {
+                id: true,
+                name: true,
+                price: true,
+                images: true,
               },
             },
-            {
-              id: "item2",
-              productId: 3,
-              quantity: 1,
-              price: 39.99,
-              product: {
-                id: 3,
-                name: "Aromatherapy Diffuser",
-                images: ["/placeholder.svg?height=300&width=300"],
-              },
-            },
-          ],
+          },
         },
-      ]
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    })
 
-      // Save mock orders to the database for persistence
-      orderDb[userId] = {}
-      mockOrders.forEach((order) => {
-        orderDb[userId][order.id] = order
-      })
-      saveOrderDb()
-
-      return NextResponse.json({ orders: mockOrders })
-    }
-
-    return NextResponse.json({ orders: Object.values(orderDb[userId] || {}) })
+    return NextResponse.json({ orders })
   } catch (error) {
     console.error("Error fetching orders:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    return NextResponse.json({ error: "Failed to fetch orders" }, { status: 500 })
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
-    // Get the Authorization header
-    const authHeader = request.headers.get("Authorization")
+    // Get the authorization header
+    const authHeader = request.headers.get("authorization")
 
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    // Extract and verify the token
     const token = authHeader.split(" ")[1]
     const payload = verifyToken(token)
 
-    if (!payload) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    if (!payload || !payload.userId) {
+      return NextResponse.json({ error: "Invalid token" }, { status: 401 })
     }
 
-    const body = await request.json()
-    const { items, shippingAddress, billingAddress, paymentMethod, total, paymentId } = body
+    // Get the order data from the request
+    const orderData = await request.json()
 
-    if (!items || !Array.isArray(items) || items.length === 0) {
-      return NextResponse.json({ error: "Invalid items" }, { status: 400 })
+    // Validate the order data
+    if (!orderData.items || !Array.isArray(orderData.items) || orderData.items.length === 0) {
+      return NextResponse.json({ error: "Invalid order items" }, { status: 400 })
     }
 
-    if (!shippingAddress) {
+    if (!orderData.shippingAddress) {
       return NextResponse.json({ error: "Shipping address is required" }, { status: 400 })
     }
 
-    if (!paymentMethod) {
+    if (!orderData.paymentMethod) {
       return NextResponse.json({ error: "Payment method is required" }, { status: 400 })
     }
 
-    // Refresh from localStorage in case it was updated in another tab
-    orderDb = getOrderDb()
-
-    // Generate a unique order ID
-    const orderId = `ORD-${orderIdCounter++}`
-
-    // Initialize user's orders if they don't exist
-    if (!orderDb[payload.userId]) {
-      orderDb[payload.userId] = {}
-    }
-
-    // Create order items with mock product data
-    const orderItems = items.map((item: any, index: number) => ({
-      id: `item-${orderId}-${index}`,
-      productId: item.id,
-      quantity: item.quantity,
-      price: item.price,
-      product: {
-        id: item.id,
-        name: item.name || `Product ${item.id}`,
-        images: [item.image || "/placeholder.svg?height=300&width=300"],
+    // Create the order in the database
+    const order = await prisma.order.create({
+      data: {
+        userId: payload.userId,
+        total: orderData.total,
+        status: "pending",
+        shippingAddress: orderData.shippingAddress,
+        paymentMethod: orderData.paymentMethod,
+        paymentId: orderData.paymentId || null,
+        items: {
+          create: orderData.items.map((item: any) => ({
+            productId: item.productId,
+            quantity: item.quantity,
+            price: item.price,
+          })),
+        },
       },
-    }))
-
-    // Create the order
-    const order = {
-      id: orderId,
-      userId: payload.userId,
-      total: total || 0,
-      status: "pending",
-      shippingAddress,
-      billingAddress,
-      paymentMethod,
-      paymentId,
-      items: orderItems,
-      createdAt: new Date().toISOString(),
-      trackingInfo: {
-        carrier: "FedEx",
-        trackingNumber: `FX${Math.floor(1000000000 + Math.random() * 9000000000)}`,
-        estimatedDelivery: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
-        trackingHistory: [
-          {
-            status: "Order Placed",
-            location: "Online",
-            timestamp: new Date().toISOString(),
-          },
-        ],
+      include: {
+        items: true,
       },
-    }
-
-    // Store the order
-    orderDb[payload.userId][orderId] = order
-
-    // Save to localStorage for persistence
-    saveOrderDb()
-
-    // Create a notification for the order
-    const notification = {
-      type: "order",
-      title: "Order Placed",
-      message: `Your order #${orderId} has been placed successfully.`,
-      link: `/account/orders/${orderId}`,
-    }
-
-    return NextResponse.json({
-      order,
-      notification,
     })
+
+    return NextResponse.json({ order })
   } catch (error) {
     console.error("Error creating order:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    return NextResponse.json({ error: "Failed to create order" }, { status: 500 })
   }
 }
 
