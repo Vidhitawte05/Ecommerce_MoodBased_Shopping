@@ -11,8 +11,9 @@ import { useToast } from "@/components/ui/use-toast"
 import { Package, Truck, CheckCircle, MapPin, Calendar, Clock } from "lucide-react"
 
 export default function TrackOrderPage() {
-  const searchParams = useSearchParams()
-  const orderId = searchParams.get("id")
+  const searchParams = useSearchParams();
+const orderId = searchParams?.get("id") ?? "";
+
   const [orderNumber, setOrderNumber] = useState(orderId || "")
   const [trackingInfo, setTrackingInfo] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(false)
