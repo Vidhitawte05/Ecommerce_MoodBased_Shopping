@@ -3,16 +3,16 @@ import { removeAuthCookie } from "@/lib/auth"
 
 export async function POST() {
   try {
-    removeAuthCookie()
-    
-    return NextResponse.json({
-      success: true,
-    })
+    const result = removeAuthCookie()
+
+    if (result.success) {
+      return NextResponse.json({ success: true })
+    } else {
+      return NextResponse.json({ error: "Failed to sign out" }, { status: 500 })
+    }
   } catch (error) {
-    console.error("Signout error:", error)
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    )
+    console.error("Sign out error:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
+
