@@ -18,7 +18,7 @@ const nextConfig = {
   },
   experimental: {
     webpackBuildWorker: true,
-    
+    runtime: "nodejs",
   },
 }
 
