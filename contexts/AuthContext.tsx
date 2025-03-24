@@ -20,6 +20,23 @@ type AuthContextType = {
   logout: () => void
 }
 
+const signIn = async (token: string, user: User) => {
+  localStorage.setItem("token", token);
+  setUser(user);
+};
+
+const authContextValue = {
+  user,
+  signIn,  // Make sure this exists
+  signOut,
+};
+
+return (
+  <AuthContext.Provider value={authContextValue}>
+    {children}
+  </AuthContext.Provider>
+);
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
