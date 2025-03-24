@@ -2,37 +2,64 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import Link from "next/link"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Separator } from "@/components/ui/separator"
 import { useToast } from "@/components/ui/use-toast"
 import { useAuth } from "@/contexts/AuthContext"
 import { ArrowLeft, Download, Truck } from "lucide-react"
-import type { Order } from "@/lib/db"
+import Link from "next/link"
 
-export default function OrderDetailPage({ params }: { params: { orderId: string } }) {
-  const { user, isAuthenticated, isLoading } = useAuth()
+interface OrderItem {
+  id: string
+  productId: number
+  quantity: number
+  price: number
+  product: {
+    id: number
+    name: string
+    price: number
+    images: string[]
+  }
+}
+
+interface Order {
+  id: string
+  userId: string
+  status: string
+  total: number
+  shippingAddress: any
+  paymentMethod: string
+  paymentId: string | null
+  createdAt: string
+  updatedAt: string
+  items: OrderItem[]
+}
+
+export default function OrderDetailsPage({ params }: { params: { orderId: string } }) {
+  const [order, setOrder] = useState<Order | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const { isAuthenticated, isLoading: authLoading } = useAuth()
   const router = useRouter()
   const { toast } = useToast()
-  const [order, setOrder] = useState<Order | null>(null)
-  const [isOrderLoading, setIsOrderLoading] = useState(true)
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
+    if (!authLoading && !isAuthenticated) {
       router.push(`/auth/signin?redirect=/account/orders/${params.orderId}`)
     }
-  }, [isLoading, isAuthenticated, router, params.orderId])
+  }, [authLoading, isAuthenticated, router, params.orderId])
 
   useEffect(() => {
-    const fetchOrder = async () => {
-      if (!user) return
-
+    const fetchOrderDetails = async () => {
       try {
-        setIsOrderLoading(true)
-        const token = localStorage.getItem("token")
+        setIsLoading(true)
+        setError(null)
 
+        const token = localStorage.getItem("token")
         if (!token) {
-          throw new Error("You must be signed in to view order details")
+          throw new Error("Authentication required")
         }
 
         const response = await fetch(`/api/orders/${params.orderId}`, {
@@ -42,55 +69,42 @@ export default function OrderDetailPage({ params }: { params: { orderId: string 
         })
 
         if (!response.ok) {
-          throw new Error("Failed to fetch order details")
-        }
-
-        const data = await response.json()
-
-        // Store order in localStorage for persistence
-        localStorage.setItem(`order_${params.orderId}`, JSON.stringify(data.order))
-
-        setOrder(data.order)
-      } catch (error) {
-        console.error("Error fetching order:", error)
-
-        // Try to get order from localStorage as fallback
-        const savedOrder = localStorage.getItem(`order_${params.orderId}`)
-        if (savedOrder) {
-          try {
-            setOrder(JSON.parse(savedOrder))
-            return
-          } catch (e) {
-            console.error("Error parsing saved order:", e)
+          if (response.status === 404) {
+            throw new Error("Order not found")
+          } else {
+            throw new Error("Failed to fetch order details")
           }
         }
 
+        const data = await response.json()
+        setOrder(data.order)
+      } catch (err) {
+        console.error("Error fetching order details:", err)
+        setError(err instanceof Error ? err.message : "An error occurred")
+
         toast({
           title: "Error",
-          description: error instanceof Error ? error.message : "Failed to load order details",
+          description: err instanceof Error ? err.message : "Failed to load order details",
           variant: "destructive",
         })
       } finally {
-        setIsOrderLoading(false)
+        setIsLoading(false)
       }
     }
 
-    if (user) {
-      fetchOrder()
+    if (isAuthenticated && params.orderId) {
+      fetchOrderDetails()
     }
-  }, [user, params.orderId, toast])
+  }, [isAuthenticated, params.orderId, toast])
 
   const handleDownloadInvoice = async () => {
-    if (!order) return
-
     try {
       const token = localStorage.getItem("token")
-
       if (!token) {
-        throw new Error("You must be signed in to download invoices")
+        throw new Error("Authentication required")
       }
 
-      const response = await fetch(`/api/invoice/${order.id}`, {
+      const response = await fetch(`/api/invoice/${params.orderId}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -100,18 +114,18 @@ export default function OrderDetailPage({ params }: { params: { orderId: string 
         throw new Error("Failed to download invoice")
       }
 
-      // Create a blob from the PDF stream
+      // Create a blob from the response
       const blob = await response.blob()
-
-      // Create a link element and trigger download
       const url = window.URL.createObjectURL(blob)
+
+      // Create a temporary link and trigger download
       const a = document.createElement("a")
       a.href = url
-      a.download = `invoice-${order.id}.pdf`
+      a.download = `invoice-${params.orderId}.pdf`
       document.body.appendChild(a)
       a.click()
 
-      // Cleanup
+      // Clean up
       window.URL.revokeObjectURL(url)
       document.body.removeChild(a)
 
@@ -119,47 +133,52 @@ export default function OrderDetailPage({ params }: { params: { orderId: string 
         title: "Success",
         description: "Invoice downloaded successfully",
       })
-    } catch (error) {
-      console.error("Error downloading invoice:", error)
+    } catch (err) {
+      console.error("Error downloading invoice:", err)
+
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to download invoice",
+        description: err instanceof Error ? err.message : "Failed to download invoice",
         variant: "destructive",
       })
     }
   }
 
   const handleTrackOrder = () => {
-    if (!order) return
-    router.push(`/track-order?orderId=${order.id}`)
+    router.push(`/track-order?orderId=${params.orderId}`)
   }
 
-  if (isLoading) {
-    return <div className="container mx-auto px-4 py-12">Loading...</div>
-  }
-
-  if (!isAuthenticated) {
-    return null // Router will redirect
-  }
-
-  return (
-    <div className="container mx-auto px-4 py-12">
-      <div className="flex items-center mb-8">
-        <Button variant="ghost" size="sm" asChild className="mr-4">
-          <Link href="/account/orders">
-            <ArrowLeft size={16} className="mr-2" />
-            Back to Orders
-          </Link>
-        </Button>
-        <h1 className="text-3xl font-bold">Order Details</h1>
-      </div>
-
-      {isOrderLoading ? (
-        <div className="text-center py-12">
-          <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p>Loading order details...</p>
+  if (authLoading || isLoading) {
+    return (
+      <div className="container mx-auto px-4 py-12">
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
         </div>
-      ) : !order ? (
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto px-4 py-12">
+        <Card>
+          <CardHeader>
+            <CardTitle>Error</CardTitle>
+            <CardDescription>{error}</CardDescription>
+          </CardHeader>
+          <CardFooter>
+            <Button asChild>
+              <Link href="/account/orders">Back to Orders</Link>
+            </Button>
+          </CardFooter>
+        </Card>
+      </div>
+    )
+  }
+
+  if (!order) {
+    return (
+      <div className="container mx-auto px-4 py-12">
         <Card>
           <CardHeader>
             <CardTitle>Order Not Found</CardTitle>
@@ -169,163 +188,170 @@ export default function OrderDetailPage({ params }: { params: { orderId: string 
           </CardHeader>
           <CardFooter>
             <Button asChild>
-              <Link href="/account/orders">View All Orders</Link>
+              <Link href="/account/orders">Back to Orders</Link>
             </Button>
           </CardFooter>
         </Card>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="md:col-span-2 space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Order #{order.id}</CardTitle>
-                <CardDescription>Placed on {new Date(order.createdAt).toLocaleDateString()}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-6">
-                  <div>
-                    <h3 className="text-lg font-medium mb-2">Items</h3>
-                    <div className="border rounded-md divide-y">
-                      {order.items.map((item, index) => (
-                        <div key={index} className="p-4 flex justify-between items-center">
-                          <div>
-                            <p className="font-medium">Product #{item.productId}</p>
-                            <p className="text-sm text-muted-foreground">Quantity: {item.quantity}</p>
-                          </div>
-                          <p className="font-medium">${(item.price * item.quantity).toFixed(2)}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+      </div>
+    )
+  }
 
-                  <div>
-                    <h3 className="text-lg font-medium mb-2">Order Summary</h3>
-                    <div className="border rounded-md p-4 space-y-2">
-                      <div className="flex justify-between">
-                        <span>Subtotal</span>
-                        <span>${order.total.toFixed(2)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Shipping</span>
-                        <span>Free</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Tax</span>
-                        <span>Included</span>
-                      </div>
-                      <div className="border-t pt-2 mt-2 flex justify-between font-medium">
-                        <span>Total</span>
-                        <span>${order.total.toFixed(2)}</span>
-                      </div>
-                    </div>
-                  </div>
+  // Format the shipping address for display
+  const shippingAddress = order.shippingAddress
+  const formattedAddress =
+    typeof shippingAddress === "string"
+      ? shippingAddress
+      : `${shippingAddress.firstName} ${shippingAddress.lastName}, ${shippingAddress.street}, ${shippingAddress.city}, ${shippingAddress.state} ${shippingAddress.postalCode}, ${shippingAddress.country}`
+
+  return (
+    <div className="container mx-auto px-4 py-12">
+      <div className="mb-6">
+        <Button variant="outline" size="sm" asChild>
+          <Link href="/account/orders">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Orders
+          </Link>
+        </Button>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2">
+          <Card>
+            <CardHeader>
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between">
+                <div>
+                  <CardTitle>Order #{order.id}</CardTitle>
+                  <CardDescription>Placed on {new Date(order.createdAt).toLocaleDateString()}</CardDescription>
                 </div>
-              </CardContent>
-            </Card>
-
-            {order.trackingInfo && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Tracking Information</CardTitle>
-                </CardHeader>
-                <CardContent>
+                <div
+                  className={`px-3 py-1 rounded-full text-sm font-medium mt-2 md:mt-0 ${
+                    order.status === "pending"
+                      ? "bg-yellow-100 text-yellow-800"
+                      : order.status === "processing"
+                        ? "bg-blue-100 text-blue-800"
+                        : order.status === "shipped"
+                          ? "bg-purple-100 text-purple-800"
+                          : "bg-green-100 text-green-800"
+                  }`}
+                >
+                  {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">Items</h3>
                   <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-sm text-muted-foreground">Carrier</p>
-                        <p className="font-medium">{order.trackingInfo.carrier}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Tracking Number</p>
-                        <p className="font-medium">{order.trackingInfo.trackingNumber}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Estimated Delivery</p>
-                        <p className="font-medium">{order.trackingInfo.estimatedDelivery}</p>
-                      </div>
-                    </div>
-
-                    <div>
-                      <h4 className="text-sm font-medium mb-2">Tracking History</h4>
-                      <div className="border rounded-md divide-y">
-                        {order.trackingInfo.trackingHistory.map((event, index) => (
-                          <div key={index} className="p-3">
-                            <div className="flex justify-between mb-1">
-                              <p className="font-medium">{event.status}</p>
-                              <p className="text-sm text-muted-foreground">{event.timestamp}</p>
-                            </div>
-                            <p className="text-sm">{event.location}</p>
+                    {order.items.map((item) => (
+                      <div key={item.id} className="flex items-center gap-4">
+                        <div className="relative w-16 h-16 rounded-md overflow-hidden flex-shrink-0">
+                          <Image
+                            src={item.product?.images?.[0] || "/placeholder.svg"}
+                            alt={item.product?.name || `Product ${item.productId}`}
+                            fill
+                            className="object-cover"
+                          />
+                        </div>
+                        <div className="flex-1">
+                          <div className="font-medium">{item.product?.name || `Product #${item.productId}`}</div>
+                          <div className="text-sm text-muted-foreground">
+                            Qty: {item.quantity} × ${item.price.toFixed(2)}
                           </div>
-                        ))}
+                        </div>
+                        <div className="font-medium">${(item.quantity * item.price).toFixed(2)}</div>
                       </div>
-                    </div>
+                    ))}
                   </div>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Shipping Address</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="font-medium">
-                  {order.shippingAddress.firstName} {order.shippingAddress.lastName}
-                </p>
-                <p>{order.shippingAddress.street}</p>
-                <p>
-                  {order.shippingAddress.city}, {order.shippingAddress.state} {order.shippingAddress.postalCode}
-                </p>
-                <p>{order.shippingAddress.country}</p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Payment Information</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="font-medium">Payment Method</p>
-                <p>{order.paymentMethod}</p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Order Status</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center space-x-2">
-                  <div
-                    className={`w-3 h-3 rounded-full ${
-                      order.status === "pending"
-                        ? "bg-yellow-500"
-                        : order.status === "processing"
-                          ? "bg-blue-500"
-                          : order.status === "shipped"
-                            ? "bg-purple-500"
-                            : "bg-green-500"
-                    }`}
-                  ></div>
-                  <p className="font-medium">{order.status.charAt(0).toUpperCase() + order.status.slice(1)}</p>
                 </div>
-              </CardContent>
-              <CardFooter className="flex flex-col space-y-2">
-                <Button className="w-full" onClick={handleTrackOrder}>
-                  <Truck size={16} className="mr-2" />
-                  Track Order
-                </Button>
-                <Button variant="outline" className="w-full" onClick={handleDownloadInvoice}>
-                  <Download size={16} className="mr-2" />
-                  Download Invoice
-                </Button>
-              </CardFooter>
-            </Card>
-          </div>
+
+                <Separator />
+
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Subtotal</span>
+                    <span>${(order.total * 0.92).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Shipping</span>
+                    <span>${(order.total * 0.08 * 0.25).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Tax</span>
+                    <span>${(order.total * 0.08 * 0.75).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between font-semibold text-lg pt-2">
+                    <span>Total</span>
+                    <span>${order.total.toFixed(2)}</span>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+            <CardFooter className="flex flex-wrap gap-4">
+              <Button variant="outline" onClick={handleTrackOrder}>
+                <Truck className="mr-2 h-4 w-4" />
+                Track Order
+              </Button>
+              <Button variant="outline" onClick={handleDownloadInvoice}>
+                <Download className="mr-2 h-4 w-4" />
+                Download Invoice
+              </Button>
+            </CardFooter>
+          </Card>
         </div>
-      )}
+
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Shipping Information</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <p className="font-medium">Address</p>
+                <p className="text-muted-foreground">{formattedAddress}</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Payment Information</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <p className="font-medium">Payment Method</p>
+                <p className="text-muted-foreground">
+                  {order.paymentMethod === "paypal"
+                    ? "PayPal"
+                    : order.paymentMethod === "cod"
+                      ? "Cash on Delivery"
+                      : order.paymentMethod}
+                </p>
+                {order.paymentId && (
+                  <>
+                    <p className="font-medium mt-4">Payment ID</p>
+                    <p className="text-muted-foreground">{order.paymentId}</p>
+                  </>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Need Help?</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground mb-4">
+                If you have any questions or issues with your order, please contact our customer support.
+              </p>
+              <Button asChild className="w-full">
+                <Link href="/contact">Contact Support</Link>
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   )
 }
