@@ -18,6 +18,7 @@ import { useAuth } from "@/contexts/AuthContext"
 import { AlertCircle, CreditCard, Banknote } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { useNotifications } from "@/contexts/NotificationContext"
+import { PayPalButton } from "@/components/paypal-button"
 
 export default function CheckoutPage() {
   const [paymentMethod, setPaymentMethod] = useState("paypal")
@@ -26,6 +27,7 @@ export default function CheckoutPage() {
   const [paymentError, setPaymentError] = useState<string | null>(null)
   const [billingAddressType, setBillingAddressType] = useState("same")
   const [showBillingFields, setShowBillingFields] = useState(false)
+  const [showPayPalButton, setShowPayPalButton] = useState(false)
 
   const router = useRouter()
   const { toast } = useToast()
@@ -113,76 +115,147 @@ export default function CheckoutPage() {
     return true
   }
 
-  // Process payment based on selected method
-  const handleProcessPayment = async (e: React.FormEvent) => {
+  const handleContinueToPayment = (e: React.FormEvent) => {
     e.preventDefault()
     if (!validateForm()) return
 
+    if (paymentMethod === "paypal") {
+      setShowPayPalButton(true)
+    } else if (paymentMethod === "cod") {
+      handleProcessOrder(null)
+    }
+  }
+
+  const handlePayPalSuccess = (details: any) => {
+    console.log("PayPal payment successful:", details)
+    handleProcessOrder(details)
+  }
+
+  const handlePayPalError = (error: any) => {
+    console.error("PayPal payment error:", error)
+    setPaymentError("Payment failed. Please try again or choose a different payment method.")
+    setIsProcessing(false)
+  }
+
+  // Process order after payment
+  const handleProcessOrder = async (paymentDetails: any) => {
     setIsProcessing(true)
     try {
+      if (!user) {
+        throw new Error("You must be signed in to place an order")
+      }
+
+      // Create shipping address object
+      const shippingAddress = {
+        firstName,
+        lastName,
+        email,
+        phone,
+        street: address,
+        city,
+        state,
+        postalCode: zip,
+        country,
+      }
+
+      // Create billing address object if different
+      const billingAddressData =
+        billingAddressType === "different"
+          ? {
+              firstName: billingFirstName,
+              lastName: billingLastName,
+              street: billingAddress,
+              city: billingCity,
+              state: billingState,
+              postalCode: billingZip,
+              country: billingCountry,
+            }
+          : shippingAddress
+
       // Generate a unique order ID
       const orderId = `ORD-${Date.now().toString().slice(-6)}`
 
-      // Create shipping address string for display
-      const shippingAddressStr = `${firstName} ${lastName}, ${address}, ${city}, ${state} ${zip}, ${country}`
+      // Create order items from cart
+      const orderItems = cart.map((item) => ({
+        productId: item.id,
+        quantity: item.quantity,
+        price: item.price,
+      }))
 
       // Create order object
       const order = {
         id: orderId,
-        date: new Date().toISOString(),
-        status: "processing",
+        userId: user.id,
+        items: orderItems,
         total: total,
-        items: cart.length,
-        shippingAddress: shippingAddressStr,
-        paymentMethod: paymentMethod,
+        status: "processing",
+        shippingAddress,
+        billingAddress: billingAddressData,
+        paymentMethod,
+        paymentId: paymentDetails?.id || null,
+        createdAt: new Date().toISOString(),
       }
 
-      // Store order in localStorage
-      const existingOrders = JSON.parse(localStorage.getItem("userOrders") || "[]")
-      existingOrders.unshift(order) // Add new order at the beginning
-      localStorage.setItem("userOrders", JSON.stringify(existingOrders))
+      // Save order to API
+      const token = localStorage.getItem("token")
+      if (!token) {
+        throw new Error("Authentication token not found")
+      }
+
+      const response = await fetch("/api/orders", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(order),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to create order")
+      }
+
+      const data = await response.json()
 
       // Store order details for confirmation page
       localStorage.setItem(
         "lastOrderDetails",
         JSON.stringify({
-          orderId: orderId,
+          orderId: data.order.id,
           orderDate: new Date().toLocaleDateString(),
           orderItems: cart,
-          shippingAddress: {
-            firstName,
-            lastName,
-            email,
-            phone,
-            address,
-            city,
-            state,
-            zip,
-            country,
-          },
+          shippingAddress,
           paymentMethod,
+          paymentDetails: paymentDetails
+            ? {
+                id: paymentDetails.id,
+                status: paymentDetails.status,
+                email: paymentDetails.payer?.email_address,
+              }
+            : null,
         }),
       )
 
       // Add notification
       addNotification({
         title: "Order Placed Successfully",
-        message: `Your order #${orderId} has been placed and is being processed.`,
+        message: `Your order #${data.order.id} has been placed and is being processed.`,
         type: "success",
       })
 
       // Show success message
       toast({
         title: "Order Placed Successfully",
-        description: `Your order #${orderId} has been placed.`,
+        description: `Your order #${data.order.id} has been placed.`,
       })
 
       // Clear cart and redirect to confirmation
       clearCart()
       router.push("/order-confirmation")
     } catch (error) {
-      console.error("Payment error:", error)
-      setPaymentError(error instanceof Error ? error.message : "Failed to process payment")
+      console.error("Order processing error:", error)
+      setPaymentError(error instanceof Error ? error.message : "Failed to process order")
     } finally {
       setIsProcessing(false)
     }
@@ -193,7 +266,15 @@ export default function CheckoutPage() {
   }
 
   if (!isAuthenticated) {
-    return <div className="container mx-auto px-4 py-12 text-center">Please sign in to checkout.</div>
+    return (
+      <div className="container mx-auto px-4 py-12 text-center">
+        <h1 className="text-3xl font-bold mb-8">Checkout</h1>
+        <p className="text-muted-foreground mb-6">Please sign in to continue with checkout.</p>
+        <Button asChild>
+          <Link href={`/auth/signin?redirect=${encodeURIComponent("/checkout")}`}>Sign In</Link>
+        </Button>
+      </div>
+    )
   }
 
   if (cart.length === 0) {
@@ -225,7 +306,7 @@ export default function CheckoutPage() {
       <div className="flex flex-col lg:flex-row gap-8">
         {/* Checkout Form */}
         <div className="lg:w-2/3">
-          <form onSubmit={handleProcessPayment}>
+          <form onSubmit={handleContinueToPayment}>
             <div className="space-y-8">
               {/* Shipping Information */}
               <div className="bg-card rounded-lg border p-6">
@@ -342,24 +423,27 @@ export default function CheckoutPage() {
                     </div>
                   </RadioGroup>
 
-                  {paymentMethod === "paypal" && (
+                  {showPayPalButton && paymentMethod === "paypal" ? (
                     <div className="mt-4 p-4 border rounded-md">
                       <h3 className="text-sm font-medium mb-4">Pay with PayPal or Credit Card</h3>
+                      <PayPalButton amount={total} onSuccess={handlePayPalSuccess} onError={handlePayPalError} />
+                    </div>
+                  ) : (
+                    <div className="mt-4 p-4 border rounded-md">
+                      <h3 className="text-sm font-medium mb-4">
+                        {paymentMethod === "paypal" ? "Pay with PayPal or Credit Card" : "Cash on Delivery"}
+                      </h3>
                       <p className="text-sm text-muted-foreground mb-4">
-                        You'll be able to enter your payment details in the next step.
+                        {paymentMethod === "paypal"
+                          ? "You'll be able to enter your payment details in the next step."
+                          : "Pay with cash when your order is delivered."}
                       </p>
                       <Button className="w-full" type="submit" disabled={isProcessing}>
-                        {isProcessing ? "Processing..." : "Continue to Payment"}
-                      </Button>
-                    </div>
-                  )}
-
-                  {paymentMethod === "cod" && (
-                    <div className="mt-4 p-4 border rounded-md">
-                      <h3 className="text-sm font-medium mb-2">Cash on Delivery</h3>
-                      <p className="text-sm text-muted-foreground mb-4">Pay with cash when your order is delivered.</p>
-                      <Button className="w-full" type="submit" disabled={isProcessing}>
-                        {isProcessing ? "Processing..." : "Place Order"}
+                        {isProcessing
+                          ? "Processing..."
+                          : paymentMethod === "paypal"
+                            ? "Continue to Payment"
+                            : "Place Order"}
                       </Button>
                     </div>
                   )}

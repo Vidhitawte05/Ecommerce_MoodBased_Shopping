@@ -30,10 +30,10 @@ const mockProducts: Record<string, any> = {
     description:
       "Soft, therapeutic blankets designed to provide deep pressure stimulation for relaxation and better sleep.",
     details: {
-      material: "Recycled paper, vegan leather cover",
-      dimensions: "8.5 x 11 inches",
-      pages: "120 pages",
-      features: "Lay-flat binding, pocket folder, elastic closure",
+      material: "100% Cotton outer cover, filled with evenly distributed glass microbeads",
+      dimensions: "60 x 80 inches (ideal for full/queen size beds)",
+      pages: "Not applicable",
+      features: "Designed to promote relaxation through deep pressure stimulation",
     },
     moods: ["Anxious", "Fragile"],
     rating: 4.8,
@@ -49,10 +49,10 @@ const mockProducts: Record<string, any> = {
     description:
       "A device that disperses essential oils into the air, creating a calming and fragrant atmosphere.",
     details: {
-      material: "Recycled paper, vegan leather cover",
-      dimensions: "8.5 x 11 inches",
-      pages: "120 pages",
-      features: "Lay-flat binding, pocket folder, elastic closure",
+      material: "BPA-free plastic with wood-grain finish (optional ceramic or glass versions)",
+      dimensions: "6 x 6 x 5 inches",
+      pages: "Not Applicable",
+      features: "Includes LED lighting options, multiple mist settings, and auto shut-off function",
     },
     moods: ["Anxious", "Serene"],
     rating: 4.6,
@@ -68,10 +68,10 @@ const mockProducts: Record<string, any> = {
     description:
       "A soothing herbal tea blend crafted to reduce stress, promote relaxation, and improve well-being.",
     details: {
-      material: "Recycled paper, vegan leather cover",
-      dimensions: "8.5 x 11 inches",
-      pages: "120 pages",
-      features: "Lay-flat binding, pocket folder, elastic closure",
+      material: "Herbal tea blend (Chamomile, Lavender, Peppermint, etc.)",
+      dimensions: "Box or pouch size varies (typically 15-30 sachets per pack)",
+      pages: "Not applicable",
+      features: "Caffeine-free, soothing blend for calming effects",
     },
     moods: ["Anxious", "Muddled"],
     rating: 4.4,
@@ -87,10 +87,10 @@ const mockProducts: Record<string, any> = {
     description:
       "A vibrant collection of watercolor paints, brushes, and paper for creative and expressive painting.",
     details: {
-      material: "Recycled paper, vegan leather cover",
-      dimensions: "8.5 x 11 inches",
-      pages: "120 pages",
-      features: "Lay-flat binding, pocket folder, elastic closure",
+      material: "High-pigment watercolor paints in metal pans; durable metal or plastic case",
+      dimensions: "8 x 4 inches case (portable size)",
+      pages: "Not applicable",
+      features: "May include brush and mixing palette inside the case",
     },
     moods: ["Creative", "Playful"],
     rating: 4.7,
@@ -106,10 +106,10 @@ const mockProducts: Record<string, any> = {
     description:
       "A guided journal designed to help track mindfulness, reflections, and personal growth.",
     details: {
-      material: "Recycled paper, vegan leather cover",
-      dimensions: "8.5 x 11 inches",
-      pages: "120 pages",
-      features: "Lay-flat binding, pocket folder, elastic closure",
+      material: "Smooth paper with softcover or PU leather binding",
+      dimensions: "5.5 x 8.5 inches",
+      pages: "100 guided journaling pages",
+      features: "prompts for mindfulness, self-reflection, and mood tracking; includes quotes and breathing exercises",
     },
     moods: ["Serene", "Anxious"],
     rating: 4.3,
@@ -125,10 +125,10 @@ const mockProducts: Record<string, any> = {
     description:
       "A curated selection of pure essential oils known for their therapeutic and aromatic benefits.",
     details: {
-      material: "Recycled paper, vegan leather cover",
-      dimensions: "8.5 x 11 inches",
-      pages: "120 pages",
-      features: "Lay-flat binding, pocket folder, elastic closure",
+      material: "Pure essential oils in amber glass bottles to protect from UV light",
+      dimensions: "Bottle size (10 ml each); Box size approx. 10 x 6 inches",
+      pages: "Not Applicable",
+      features: "Includes a variety of scents like Lavender, Eucalyptus, Peppermint, etc.",
     },
     moods: ["Anxious", "Serene", "Muddled"],
     rating: 4.5,
@@ -144,10 +144,10 @@ const mockProducts: Record<string, any> = {
     description:
       "A thoughtfully designed notebook to cultivate positivity by recording daily gratitude and reflections.",
     details: {
-      material: "Recycled paper, vegan leather cover",
-      dimensions: "8.5 x 11 inches",
-      pages: "120 pages",
-      features: "Lay-flat binding, pocket folder, elastic closure",
+      material: "High-quality paper with hardcover binding",
+      dimensions: "6 x 9 inches",
+      pages: "150 structured pages",
+      features: "daily gratitude prompts, weekly reflections, affirmations, and space for free writing; includes inspirational quotes and a habit tracker section",
     },
     moods: ["Fragile", "Caring"],
     rating: 4.6,
