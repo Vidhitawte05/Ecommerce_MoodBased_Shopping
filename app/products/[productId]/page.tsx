@@ -14,12 +14,7 @@ import { useAuth } from "@/contexts/AuthContext"
 import { useRouter } from "next/navigation"
 
 // Mock product data for fallback
-const mockProducts = Record<string, {
-   id: number;
-  name: string;
-  price: number;
-  images: string[];
-}> = {
+const mockProducts = {
   "1": {
     id: 1,
     name: "Idea Journal",
