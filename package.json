@@ -58,7 +58,8 @@
     "tailwind-merge": "^2.0.0",
     "tailwindcss-animate": "^1.0.7",
     "zod": "^3.22.4",
-    "embla-carousel-react": "^8.5.1"
+    "embla-carousel-react": "^8.5.1",
+    "recharts": "^2.8.0"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
