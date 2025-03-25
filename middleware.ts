@@ -15,9 +15,6 @@ const protectedPaths = [
 // Define which paths are for admin only
 const adminPaths = ["/admin", "/api/admin"]
 
-// Define public API paths that don't need to be checked
-const publicApiPaths = ["/api/auth/signin", "/api/auth/signup", "/api/products", "/api/moods"]
-
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
@@ -38,10 +35,13 @@ export function middleware(request: NextRequest) {
   const requiresAdmin = adminPaths.some((path) => pathname.startsWith(path))
 
   // Get the token from the cookies
-  const token = request.cookies.get("auth_token")?.value
+  const token = request.cookies.get("auth_token")?.value || request.headers.get("authorization")?.replace("Bearer ", "")
 
   // If no token and the path requires authentication, redirect to login
   if (requiresAuth && !token) {
+    if (pathname.startsWith("/api/")) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
     const url = new URL("/auth/signin", request.url)
     url.searchParams.set("callbackUrl", encodeURI(request.url))
     return NextResponse.redirect(url)
@@ -53,6 +53,9 @@ export function middleware(request: NextRequest) {
 
     // If the token is invalid, clear it and redirect to login if the path requires authentication
     if (!payload && requiresAuth) {
+      if (pathname.startsWith("/api/")) {
+        return NextResponse.json({ error: "Invalid token" }, { status: 401 })
+      }
       const response = NextResponse.redirect(new URL("/auth/signin", request.url))
       response.cookies.set("auth_token", "", { maxAge: 0 })
       return response
@@ -60,6 +63,9 @@ export function middleware(request: NextRequest) {
 
     // If the path requires admin access, check if the user is an admin
     if (requiresAdmin && payload?.email !== "admin@example.com") {
+      if (pathname.startsWith("/api/")) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+      }
       return NextResponse.redirect(new URL("/", request.url))
     }
 
@@ -67,11 +73,8 @@ export function middleware(request: NextRequest) {
     if (payload && pathname.startsWith("/api")) {
       const requestHeaders = new Headers(request.headers)
       requestHeaders.set("X-User-ID", payload.userId)
-
-      // For admin routes, also verify admin status
-      if (pathname.startsWith("/api/admin") && payload.email !== "admin@example.com") {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-      }
+      requestHeaders.set("X-User-Email", payload.email)
+      requestHeaders.set("X-User-Name", payload.name)
 
       return NextResponse.next({
         request: {
