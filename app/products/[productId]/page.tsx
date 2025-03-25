@@ -97,9 +97,9 @@ export default function ProductPage({ params }: { params: { productId: string } 
         console.error("Error fetching product:", err)
 
         // Fallback to mock data
-        if (mockProducts[params.productId]) {
-          setProduct(mockProducts[params.productId])
-        } else {
+        if (mockProducts[String(params.productId)]) {
+  setProduct(mockProducts[String(params.productId)]);
+}else {
           // Create a generic product if not found
           setProduct({
             id: Number(params.productId),
