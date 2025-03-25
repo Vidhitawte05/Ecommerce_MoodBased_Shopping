@@ -1,9 +1,9 @@
-import { type NextRequest, NextResponse } from "next/server"
+import { NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
-import bcrypt from "bcryptjs"
 import { createSecureToken } from "@/lib/auth"
+import bcrypt from "bcryptjs"
 
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
   try {
     const { email, password } = await request.json()
 
@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
         id: true,
         email: true,
         name: true,
-        password: true,
+        password: true, // Get the password for comparison
       },
     })
 
@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
       value: token,
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
+      sameSite: "lax",
       maxAge: 60 * 60 * 24 * 7, // 7 days
       path: "/",
     })
