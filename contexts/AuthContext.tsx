@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
@@ -18,7 +18,7 @@ type AuthContextType = {
   signup: (name: string, email: string, password: string) => Promise<boolean>;
   logout: () => void;
   signOut: () => void;
-  signIn: (email: string, password: string) => Promise<boolean>; 
+  signIn: (email: string, password: string) => Promise<boolean>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -64,31 +64,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     checkAuth();
   }, []);
 
-  const login = async (email: string, password: string) => {
-  try {
-    setIsLoading(true);
-    // Example API call - Replace with actual API logic
-    const response = await fetch("/api/auth/login", {
-      method: "POST",
-      body: JSON.stringify({ email, password }),
-      headers: { "Content-Type": "application/json" },
-    });
-
-    if (!response.ok) throw new Error("Login failed");
-
-    const data = await response.json();
-    setUser(data.user);
-    setIsLoading(false);
-  } catch (error) {
-    console.error("Login error:", error);
-    setIsLoading(false);
-  }
-};
-
-
-  const signIn = async (email: string, password: string) => {
+  const login = async (email: string, password: string): Promise<boolean> => {
     try {
-      const response = await fetch("/api/auth/signin", {
+      setIsLoading(true);
+      const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
@@ -97,24 +76,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const data = await response.json();
 
       if (!response.ok) {
-        toast({ title: "Login Failed", description: data.error || "Invalid email or password", variant: "destructive" });
+        toast({
+          title: "Login Failed",
+          description: data.error || "Invalid email or password",
+          variant: "destructive",
+        });
+        setIsLoading(false);
         return false;
       }
 
       localStorage.setItem("token", data.token);
       setUser(data.user);
 
-      toast({ title: "Login Successful", description: `Welcome back, ${data.user.name}!` });
+      toast({
+        title: "Login Successful",
+        description: `Welcome back, ${data.user.name}!`,
+      });
+
+      setIsLoading(false);
       return true;
     } catch (error) {
       console.error("Login error:", error);
-      toast({ title: "Login Failed", description: "An unexpected error occurred.", variant: "destructive" });
+      toast({
+        title: "Login Failed",
+        description: "An unexpected error occurred.",
+        variant: "destructive",
+      });
+      setIsLoading(false);
       return false;
     }
   };
 
-  const signup = async (name: string, email: string, password: string) => {
+  const signIn = login; // Reusing login function for signIn
+
+  const signup = async (name: string, email: string, password: string): Promise<boolean> => {
     try {
+      setIsLoading(true);
       const response = await fetch("/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -124,18 +121,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const data = await response.json();
 
       if (!response.ok) {
-        toast({ title: "Signup Failed", description: data.error || "Failed to create account", variant: "destructive" });
+        toast({
+          title: "Signup Failed",
+          description: data.error || "Failed to create account",
+          variant: "destructive",
+        });
+        setIsLoading(false);
         return false;
       }
 
       localStorage.setItem("token", data.token);
       setUser(data.user);
 
-      toast({ title: "Signup Successful", description: `Welcome, ${data.user.name}!` });
+      toast({
+        title: "Signup Successful",
+        description: `Welcome, ${data.user.name}!`,
+      });
+
+      setIsLoading(false);
       return true;
     } catch (error) {
       console.error("Signup error:", error);
-      toast({ title: "Signup Failed", description: "An unexpected error occurred.", variant: "destructive" });
+      toast({
+        title: "Signup Failed",
+        description: "An unexpected error occurred.",
+        variant: "destructive",
+      });
+      setIsLoading(false);
       return false;
     }
   };
@@ -144,20 +156,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem("token");
     setUser(null);
     router.push("/");
-    toast({ title: "Logged Out", description: "You have been successfully logged out." });
+    toast({
+      title: "Logged Out",
+      description: "You have been successfully logged out.",
+    });
   };
 
-  const signOut = logout;
+  const signOut = logout; // Alias for logout
 
-  const authContextValue = { 
-    user, 
-    isAuthenticated: !!user, 
-    isLoading, 
-    login, 
-    signIn, 
-    signup, 
-    logout, 
-    signOut 
+  const authContextValue = {
+    user,
+    isAuthenticated: !!user,
+    isLoading,
+    login,
+    signIn,
+    signup,
+    logout,
+    signOut,
   };
 
   return <AuthContext.Provider value={authContextValue}>{children}</AuthContext.Provider>;
