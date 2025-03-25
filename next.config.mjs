@@ -2,19 +2,18 @@
 const nextConfig = {
   reactStrictMode: true,
   images: {
-    domains: ['placeholder.com', 'localhost'],
+    domains: ['placeholder.com', 'localhost', 'moodyss.netlify.app'],
     remotePatterns: [
       {
         protocol: 'https',
         hostname: '**',
       },
     ],
+    unoptimized: true, // This helps with Netlify deployments
   },
   experimental: {
-    // Remove the runtime key that's causing issues
     serverComponentsExternalPackages: ['@prisma/client', 'bcryptjs'],
   },
-  // Add this for Netlify deployment
   output: 'standalone',
 }
 
