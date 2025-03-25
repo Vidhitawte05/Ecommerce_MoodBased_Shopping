@@ -11,7 +11,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    // Get wishlist for the current user
+    // Get wishlist for the current user only
     let wishlist = await prisma.wishlist.findFirst({
       where: {
         userId: user.userId,
@@ -62,7 +62,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Product ID is required" }, { status: 400 })
     }
 
-    // Get or create wishlist
+    // Get or create wishlist for the current user
     let wishlist = await prisma.wishlist.findFirst({
       where: {
         userId: user.userId,
@@ -86,7 +86,10 @@ export async function POST(request: Request) {
     })
 
     if (existingItem) {
-      return NextResponse.json({ error: "Product already in wishlist" }, { status: 400 })
+      return NextResponse.json({
+        success: false,
+        message: "Product already in wishlist",
+      })
     }
 
     // Add item to wishlist
@@ -97,7 +100,11 @@ export async function POST(request: Request) {
       },
     })
 
-    return NextResponse.json({ wishlistItem })
+    return NextResponse.json({
+      success: true,
+      message: "Product added to wishlist",
+      wishlistItem,
+    })
   } catch (error) {
     console.error("Error adding to wishlist:", error)
     return NextResponse.json({ error: "Failed to add to wishlist" }, { status: 500 })
