@@ -25,4 +25,4 @@
   NEXT_USE_NETLIFY_EDGE = "true"
   NODE_VERSION = "18"
   DATABASE_URL = "postgresql://postgres:Vidhi@2605@db.wpgjwynemtgrtjhwgvin.supabase.co:5432/postgres"
-  NEXT_PUBLIC_API_URL = ""
+  NEXT_PUBLIC_API_URL = "https://moodyss.netlify.app/api"
