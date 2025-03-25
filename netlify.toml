@@ -1,23 +1,17 @@
 [build]
   command = "npm run build"
   publish = ".next"
-
-[build.environment]
-  NEXT_TELEMETRY_DISABLED = "1"
-  NODE_VERSION = "18"
+  environment = { NODE_VERSION = "18" }
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 
-# Handle Prisma binary files
-[functions]
-  included_files = [
-    "node_modules/.prisma/**",
-    "node_modules/@prisma/**",
-    "prisma/**"
-  ]
+[build.environment]
+  NEXT_TELEMETRY_DISABLED = "1"
 
-# Add redirects for SPA fallback
+[functions]
+  included_files = ["node_modules/.prisma/**", "node_modules/@prisma/**", "prisma/**"]
+
 [[redirects]]
   from = "/*"
   to = "/index.html"
