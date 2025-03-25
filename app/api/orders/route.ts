@@ -1,40 +1,25 @@
-import { type NextRequest, NextResponse } from "next/server"
+import { NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
-import { verifyToken } from "@/lib/auth"
+import { getCurrentUser } from "@/lib/auth"
 
-export async function GET(request: NextRequest) {
+export async function GET(request: Request) {
   try {
-    // Get the authorization header
-    const authHeader = request.headers.get("authorization")
+    // Get user from token
+    const user = getCurrentUser(request)
 
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    // Extract and verify the token
-    const token = authHeader.split(" ")[1]
-    const payload = verifyToken(token)
-
-    if (!payload || !payload.userId) {
-      return NextResponse.json({ error: "Invalid token" }, { status: 401 })
-    }
-
-    // Get orders for the authenticated user
+    // Get orders for the current user
     const orders = await prisma.order.findMany({
       where: {
-        userId: payload.userId,
+        userId: user.userId,
       },
       include: {
         items: {
           include: {
-            product: {
-              select: {
-                id: true,
-                name: true,
-                price: true,
-                images: true,
-              },
-            },
+            product: true,
           },
         },
       },
@@ -50,58 +35,55 @@ export async function GET(request: NextRequest) {
   }
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
   try {
-    // Get the authorization header
-    const authHeader = request.headers.get("authorization")
+    const user = getCurrentUser(request)
 
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    // Extract and verify the token
-    const token = authHeader.split(" ")[1]
-    const payload = verifyToken(token)
+    const { items, total, shippingAddress, paymentMethod } = await request.json()
 
-    if (!payload || !payload.userId) {
-      return NextResponse.json({ error: "Invalid token" }, { status: 401 })
+    // Validate input
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      return NextResponse.json({ error: "Invalid items" }, { status: 400 })
     }
 
-    // Get the order data from the request
-    const orderData = await request.json()
-
-    // Validate the order data
-    if (!orderData.items || !Array.isArray(orderData.items) || orderData.items.length === 0) {
-      return NextResponse.json({ error: "Invalid order items" }, { status: 400 })
+    if (typeof total !== "number" || total <= 0) {
+      return NextResponse.json({ error: "Invalid total" }, { status: 400 })
     }
 
-    if (!orderData.shippingAddress) {
+    if (!shippingAddress) {
       return NextResponse.json({ error: "Shipping address is required" }, { status: 400 })
     }
 
-    if (!orderData.paymentMethod) {
+    if (!paymentMethod) {
       return NextResponse.json({ error: "Payment method is required" }, { status: 400 })
     }
 
-    // Create the order in the database
+    // Create order
     const order = await prisma.order.create({
       data: {
-        userId: payload.userId,
-        total: orderData.total,
+        userId: user.userId,
+        total,
         status: "pending",
-        shippingAddress: orderData.shippingAddress,
-        paymentMethod: orderData.paymentMethod,
-        paymentId: orderData.paymentId || null,
+        shippingAddress,
+        paymentMethod,
         items: {
-          create: orderData.items.map((item: any) => ({
-            productId: item.productId,
+          create: items.map((item: any) => ({
+            productId: item.id,
             quantity: item.quantity,
             price: item.price,
           })),
         },
       },
       include: {
-        items: true,
+        items: {
+          include: {
+            product: true,
+          },
+        },
       },
     })
 
