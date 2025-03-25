@@ -11,7 +11,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    // Get orders for the current user
+    // Get orders for the current user only
     const orders = await prisma.order.findMany({
       where: {
         userId: user.userId,
@@ -19,7 +19,14 @@ export async function GET(request: Request) {
       include: {
         items: {
           include: {
-            product: true,
+            product: {
+              select: {
+                id: true,
+                name: true,
+                price: true,
+                images: true,
+              },
+            },
           },
         },
       },
@@ -43,38 +50,28 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const { items, total, shippingAddress, paymentMethod } = await request.json()
+    const body = await request.json()
+    const { items, total, shippingAddress, paymentMethod, paymentId } = body
 
     // Validate input
     if (!items || !Array.isArray(items) || items.length === 0) {
       return NextResponse.json({ error: "Invalid items" }, { status: 400 })
     }
 
-    if (typeof total !== "number" || total <= 0) {
-      return NextResponse.json({ error: "Invalid total" }, { status: 400 })
-    }
-
-    if (!shippingAddress) {
-      return NextResponse.json({ error: "Shipping address is required" }, { status: 400 })
-    }
-
-    if (!paymentMethod) {
-      return NextResponse.json({ error: "Payment method is required" }, { status: 400 })
-    }
-
     // Create order
     const order = await prisma.order.create({
       data: {
         userId: user.userId,
-        total,
+        total: total || 0,
         status: "pending",
-        shippingAddress,
-        paymentMethod,
+        shippingAddress: shippingAddress || {},
+        paymentMethod: paymentMethod || "unknown",
+        paymentId: paymentId || null,
         items: {
           create: items.map((item: any) => ({
-            productId: item.id,
-            quantity: item.quantity,
-            price: item.price,
+            productId: item.productId || item.id,
+            quantity: item.quantity || 1,
+            price: item.price || 0,
           })),
         },
       },
