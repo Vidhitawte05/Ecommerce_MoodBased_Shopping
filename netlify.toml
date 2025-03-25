@@ -6,7 +6,7 @@
   package = "@netlify/plugin-nextjs"
 
 [functions]
-  included_files = ["prisma/**"]
+  included_files = ["prisma/**", ".env.production"]
 
 [[redirects]]
   from = "/*"
