@@ -14,24 +14,7 @@ import { useAuth } from "@/contexts/AuthContext"
 import { useRouter } from "next/navigation"
 
 // Mock product data for fallback
-const mockProducts: Record<string, {
-  id: number;
-  name: string;
-  price: number;
-  images: string[];
-  description: string;
-  details: {
-    material: string;
-    dimensions: string;
-    pages: string;
-    features: string;
-  };
-  moods: string[];
-  rating: number;
-  reviews: number;
-  stock: number;
-  shipping: string;
-}> = {
+const mockProducts = {
   "1": {
     id: 1,
     name: "Idea Journal",
@@ -87,11 +70,9 @@ export default function ProductPage({ params }: { params: { productId: string } 
           setProduct(data.product)
         } else {
           // If API doesn't return a product, check our mock data
-         const productId = params.productId as keyof typeof mockProducts; // Assert as key
-if (mockProducts[productId]) {
-  setProduct(mockProducts[productId]);
-}
-  else {
+          if (mockProducts[params.productId]) {
+            setProduct(mockProducts[params.productId])
+          } else {
             // Create a generic product if not found
             setProduct({
               id: Number(params.productId),
@@ -181,6 +162,16 @@ if (mockProducts[productId]) {
     }
   }
 
+  // Helper function to get image with proper path
+  const getImagePath = (imagePath: string) => {
+    // If the image is a relative path and doesn't start with http, make it absolute
+    if (imagePath && !imagePath.startsWith("http") && !imagePath.startsWith("/placeholder")) {
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || ""
+      return `${baseUrl}${imagePath.startsWith("/") ? "" : "/"}${imagePath}`
+    }
+    return imagePath
+  }
+
   const handleAddToCart = () => {
     if (!product) return
 
@@ -189,7 +180,7 @@ if (mockProducts[productId]) {
       name: product.name,
       price: product.price,
       quantity: quantity,
-      image: product.images[0],
+      image: getImagePath(product.images[0]),
     })
 
     toast({
@@ -292,7 +283,7 @@ if (mockProducts[productId]) {
       name: product.name,
       price: product.price,
       quantity: quantity,
-      image: product.images[0],
+      image: getImagePath(product.images[0]),
     })
 
     // Show toast notification
@@ -337,10 +328,11 @@ if (mockProducts[productId]) {
         <div className="lg:w-1/2 space-y-4">
           <div className="relative aspect-square rounded-lg overflow-hidden border">
             <Image
-              src={product.images[selectedImage] || "/placeholder.svg"}
+              src={getImagePath(product.images[selectedImage]) || "/placeholder.svg"}
               alt={product.name}
               fill
               className="object-cover"
+              unoptimized
             />
           </div>
           <div className="flex gap-4">
@@ -351,10 +343,11 @@ if (mockProducts[productId]) {
                 onClick={() => setSelectedImage(index)}
               >
                 <Image
-                  src={image || "/placeholder.svg"}
+                  src={getImagePath(image) || "/placeholder.svg"}
                   alt={`${product.name} - view ${index + 1}`}
                   fill
                   className="object-cover"
+                  unoptimized
                 />
               </div>
             ))}
