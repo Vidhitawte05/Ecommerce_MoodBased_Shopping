@@ -3,28 +3,35 @@
 import type React from "react"
 
 import { useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useAuth } from "@/contexts/AuthContext"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { useToast } from "@/components/ui/use-toast"
-import { useAuth } from "@/contexts/AuthContext"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Loader2 } from "lucide-react"
+import { storeAuthToken } from "@/lib/client-auth"
 
 export default function SignInPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
   const router = useRouter()
-  const { toast } = useToast()
-  const { login: signIn } = useAuth()
+  const searchParams = useSearchParams()
+  const callbackUrl = searchParams?.get("callbackUrl") || "/"
+  const { login } = useAuth()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setError(null)
     setIsLoading(true)
 
     try {
+      // Call the API directly to get the token
       const response = await fetch("/api/auth/signin", {
         method: "POST",
         headers: {
@@ -39,48 +46,39 @@ export default function SignInPage() {
         throw new Error(data.error || "Failed to sign in")
       }
 
-      // Use the signIn function from AuthContext
-      signIn(data.token, data.user)
+      // Store the token in localStorage
+      if (data.token) {
+        storeAuthToken(data.token)
+      }
 
-      toast({
-        title: "Success",
-        description: "You have successfully signed in",
-      })
+      // Use the AuthContext login function to update the UI state
+      const success = await login(email, password)
 
-      // Check if there's a redirect URL in the query params
-      const params = new URLSearchParams(window.location.search)
-      const redirectUrl = params.get("redirect")
-
-      // Check if there's a checkout redirect stored
-      const checkoutRedirect = localStorage.getItem("checkoutRedirect")
-
-      if (redirectUrl) {
-        router.push(redirectUrl)
-      } else if (checkoutRedirect) {
-        router.push(checkoutRedirect)
-        localStorage.removeItem("checkoutRedirect")
-      } else {
-        router.push("/account")
+      if (success) {
+        // Redirect to the callback URL or home page
+        router.push(callbackUrl)
       }
     } catch (error) {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to sign in",
-        variant: "destructive",
-      })
+      console.error("Sign in error:", error)
+      setError(error instanceof Error ? error.message : "Failed to sign in")
     } finally {
       setIsLoading(false)
     }
   }
 
   return (
-    <div className="container mx-auto flex items-center justify-center min-h-[calc(100vh-200px)] px-4 py-12">
+    <div className="container flex items-center justify-center min-h-screen py-10">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold">Sign in</CardTitle>
           <CardDescription>Enter your email and password to sign in to your account</CardDescription>
         </CardHeader>
         <CardContent>
+          {error && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
@@ -109,7 +107,13 @@ export default function SignInPage() {
               />
             </div>
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "Signing in..." : "Sign in"}
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Please wait
+                </>
+              ) : (
+                "Sign In"
+              )}
             </Button>
           </form>
         </CardContent>
