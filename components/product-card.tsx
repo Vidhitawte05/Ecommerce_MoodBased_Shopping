@@ -66,9 +66,7 @@ export function ProductCard({ product }: { product: ProductType }) {
       name: product.name,
       price: product.price,
       quantity: 1,
-      image:
-        product.image ||
-        (product.images && product.images.length > 0 ? product.images[0] : "/placeholder.svg?height=300&width=300"),
+      image: getProductImage(),
     })
     toast({
       title: "Added to cart",
@@ -120,9 +118,7 @@ export function ProductCard({ product }: { product: ProductType }) {
           id: product.id,
           name: product.name,
           price: product.price,
-          image:
-            product.image ||
-            (product.images && product.images.length > 0 ? product.images[0] : "/placeholder.svg?height=300&width=300"),
+          image: getProductImage(),
         }
 
         // Check if product is already in wishlist
@@ -155,10 +151,23 @@ export function ProductCard({ product }: { product: ProductType }) {
     }
   }
 
+  // Helper function to get product image with proper path
+  const getProductImage = () => {
+    let imagePath =
+      product.image ||
+      (product.images && product.images.length > 0 ? product.images[0] : "/placeholder.svg?height=300&width=300")
+
+    // If the image is a relative path and doesn't start with http, make it absolute
+    if (imagePath && !imagePath.startsWith("http") && !imagePath.startsWith("/placeholder")) {
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || ""
+      imagePath = `${baseUrl}${imagePath.startsWith("/") ? "" : "/"}${imagePath}`
+    }
+
+    return imagePath
+  }
+
   // Get product image
-  const productImage =
-    product.image ||
-    (product.images && product.images.length > 0 ? product.images[0] : "/placeholder.svg?height=300&width=300")
+  const productImage = getProductImage()
 
   return (
     <Card className="overflow-hidden">
@@ -170,6 +179,7 @@ export function ProductCard({ product }: { product: ProductType }) {
               alt={product.name}
               fill
               className="object-cover transition-transform hover:scale-105"
+              unoptimized // Add this to prevent image optimization issues
             />
           </div>
         </Link>
