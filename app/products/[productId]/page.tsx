@@ -13,8 +13,27 @@ import { useCart } from "@/contexts/CartContext"
 import { useAuth } from "@/contexts/AuthContext"
 import { useRouter } from "next/navigation"
 
+type ProductType = {
+  id: number;
+  name: string;
+  price: number;
+  images: string[];
+  description: string;
+  details: {
+    material: string;
+    dimensions: string;
+    pages: string;
+    features: string;
+  };
+  moods: string[];
+  rating: number;
+  reviews: number;
+  stock: number;
+  shipping: string;
+};
+
 // Mock product data for fallback
-const mockProducts = {
+const mockProducts: Record<string, ProductType> = {
   "1": {
     id: 1,
     name: "Idea Journal",
