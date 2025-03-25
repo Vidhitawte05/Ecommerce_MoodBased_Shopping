@@ -1,66 +1,55 @@
 import { NextResponse } from "next/server"
+import { getCurrentUser } from "@/lib/auth"
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json()
-    const { amount, paymentMethod, paymentDetails } = body
+    const user = getCurrentUser(request)
 
-    // Validate the request
-    if (!amount || !paymentMethod) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    // Simulate payment processing
-    // In a real app, you would integrate with PayPal SDK here
-    const paymentId = "PP-" + Math.random().toString(36).substring(2, 15)
+    const body = await request.json()
+    const { amount, currency = "USD", paymentMethod } = body
 
-    // Simulate different payment methods
-    let payment
+    // Validate the request
+    if (!amount || typeof amount !== "number") {
+      return NextResponse.json({ error: "Invalid amount" }, { status: 400 })
+    }
 
-    if (paymentMethod === "credit_card" || paymentMethod === "debit_card") {
-      // Validate card details
-      if (
-        !paymentDetails?.cardNumber ||
-        !paymentDetails?.cardHolder ||
-        !paymentDetails?.expiryDate ||
-        !paymentDetails?.cvv
-      ) {
-        return NextResponse.json({ error: "Missing card details" }, { status: 400 })
-      }
+    // Generate a unique payment ID
+    const paymentId = `PP-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`
 
-      payment = {
-        id: paymentId,
-        method: paymentMethod,
-        amount,
-        status: "completed",
-        details: {
-          last4: paymentDetails.cardNumber.slice(-4),
-          cardHolder: paymentDetails.cardHolder,
-          // Don't return sensitive information
+    // Create a mock payment response
+    // In a real implementation, this would interact with the PayPal API
+    const payment = {
+      id: paymentId,
+      status: "COMPLETED",
+      create_time: new Date().toISOString(),
+      update_time: new Date().toISOString(),
+      payer: {
+        email_address: user.email,
+        payer_id: `PAYER-${user.userId}`,
+        name: {
+          given_name: user.name.split(" ")[0],
+          surname: user.name.split(" ").slice(1).join(" ") || "",
         },
-      }
-    } else if (paymentMethod === "upi") {
-      // Validate UPI details
-      if (!paymentDetails?.upiId) {
-        return NextResponse.json({ error: "Missing UPI ID" }, { status: 400 })
-      }
-
-      payment = {
-        id: paymentId,
-        method: paymentMethod,
-        amount,
-        status: "completed",
-        details: {
-          upiId: paymentDetails.upiId,
+      },
+      purchase_units: [
+        {
+          amount: {
+            currency_code: currency,
+            value: amount.toFixed(2),
+          },
         },
-      }
-    } else {
-      payment = {
-        id: paymentId,
-        method: paymentMethod,
-        amount,
-        status: "completed",
-      }
+      ],
+      links: [
+        {
+          href: `/api/orders/${paymentId}`,
+          rel: "self",
+          method: "GET",
+        },
+      ],
     }
 
     // Simulate a delay for payment processing
