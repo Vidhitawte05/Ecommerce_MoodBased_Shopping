@@ -1,6 +1,7 @@
 [build]
   command = "npm run build"
   publish = ".next"
+  environment = { DATABASE_URL = "postgresql://postgres:Vidhi@2605@db.wpgjwynemtgrtjhwgvin.supabase.co:5432/postgres" }
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
