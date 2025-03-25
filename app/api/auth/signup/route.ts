@@ -53,13 +53,13 @@ export async function POST(request: Request) {
       token,
     })
 
-    // Set HTTP-only cookie
+    // Set HTTP-only cookie with appropriate settings for Netlify
     response.cookies.set({
       name: "auth_token",
       value: token,
       httpOnly: true,
       secure: true,
-      sameSite: "lax",
+      sameSite: "none", // Important for cross-domain cookies
       maxAge: 60 * 60 * 24 * 7, // 7 days
       path: "/",
     })
