@@ -19,7 +19,7 @@ export async function POST(request: Request) {
         id: true,
         email: true,
         name: true,
-        password: true, // Get the password for comparison
+        password: true,
       },
     })
 
@@ -37,8 +37,9 @@ export async function POST(request: Request) {
     // Generate token
     const token = createSecureToken(user.id, user.email, user.name)
 
-    // Set cookie for server-side auth
+    // Create response with user data and token
     const response = NextResponse.json({
+      success: true,
       user: {
         id: user.id,
         email: user.email,
@@ -52,7 +53,7 @@ export async function POST(request: Request) {
       name: "auth_token",
       value: token,
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: true,
       sameSite: "lax",
       maxAge: 60 * 60 * 24 * 7, // 7 days
       path: "/",
