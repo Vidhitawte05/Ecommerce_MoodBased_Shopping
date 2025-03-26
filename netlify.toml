@@ -5,27 +5,13 @@
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 
-[functions]
-  # Remove .env.production from included_files since it's causing errors
-  included_files = ["prisma/**"]
-  directory = "netlify/functions"
-
+# This is the critical part for handling all routes
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
-  force = false
-  conditions = {Role = ["anonymous"]}
-
-[[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/api/:splat"
-  status = 200
-  force = true
 
 [build.environment]
   NEXT_USE_NETLIFY_EDGE = "true"
   NODE_VERSION = "18"
-  # Don't include sensitive information here
-  # Set these in Netlify dashboard instead
 
