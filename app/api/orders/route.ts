@@ -11,6 +11,8 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    console.log("Fetching orders for user:", user.userId)
+
     // Get orders for the current user only
     const orders = await prisma.order.findMany({
       where: {
@@ -35,6 +37,8 @@ export async function GET(request: Request) {
       },
     })
 
+    console.log(`Found ${orders.length} orders for user ${user.userId}`)
+
     return NextResponse.json({ orders })
   } catch (error) {
     console.error("Error fetching orders:", error)
@@ -57,6 +61,8 @@ export async function POST(request: Request) {
     if (!items || !Array.isArray(items) || items.length === 0) {
       return NextResponse.json({ error: "Invalid items" }, { status: 400 })
     }
+
+    console.log("Creating order for user:", user.userId)
 
     // Create order
     const order = await prisma.order.create({
@@ -83,6 +89,8 @@ export async function POST(request: Request) {
         },
       },
     })
+
+    console.log("Order created successfully:", order.id)
 
     return NextResponse.json({ order })
   } catch (error) {
