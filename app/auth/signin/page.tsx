@@ -31,6 +31,8 @@ export default function SignInPage() {
     setIsLoading(true)
 
     try {
+      console.log("Attempting to sign in with:", email)
+
       // Call the API directly to get the token
       const response = await fetch("/api/auth/signin", {
         method: "POST",
@@ -38,6 +40,7 @@ export default function SignInPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ email, password }),
+        credentials: "include", // Important for cookies
       })
 
       const data = await response.json()
@@ -46,18 +49,20 @@ export default function SignInPage() {
         throw new Error(data.error || "Failed to sign in")
       }
 
+      console.log("Sign in successful, storing token")
+
       // Store the token in localStorage
       if (data.token) {
         storeAuthToken(data.token)
       }
 
       // Use the AuthContext login function to update the UI state
-      const success = await login(email, password)
+      await login(email, password)
 
-      if (success) {
-        // Redirect to the callback URL or home page
-        router.push(callbackUrl)
-      }
+      console.log("Redirecting to:", callbackUrl)
+
+      // Redirect to the callback URL or home page
+      router.push(callbackUrl)
     } catch (error) {
       console.error("Sign in error:", error)
       setError(error instanceof Error ? error.message : "Failed to sign in")
