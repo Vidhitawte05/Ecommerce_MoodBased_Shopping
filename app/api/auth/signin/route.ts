@@ -49,12 +49,13 @@ export async function POST(request: Request) {
     })
 
     // Set HTTP-only cookie with appropriate settings for Netlify
+    // Using lax for sameSite to work better in Netlify environment
     response.cookies.set({
       name: "auth_token",
       value: token,
       httpOnly: true,
-      secure: true,
-      sameSite: "none", // Important for cross-domain cookies
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
       maxAge: 60 * 60 * 24 * 7, // 7 days
       path: "/",
     })
