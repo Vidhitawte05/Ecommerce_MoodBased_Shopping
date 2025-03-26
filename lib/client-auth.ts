@@ -52,3 +52,14 @@ export async function fetchWithAuth(url: string, options: RequestInit = {}): Pro
   })
 }
 
+// Helper to get the base URL for API requests
+export function getApiBaseUrl(): string {
+  if (typeof window !== "undefined") {
+    // In the browser, use the current origin
+    return `${window.location.origin}/api`
+  }
+
+  // In server-side code, use the environment variable or default
+  return process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api"
+}
+
