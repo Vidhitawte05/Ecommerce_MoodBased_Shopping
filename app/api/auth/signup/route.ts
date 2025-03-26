@@ -58,8 +58,8 @@ export async function POST(request: Request) {
       name: "auth_token",
       value: token,
       httpOnly: true,
-      secure: true,
-      sameSite: "none", // Important for cross-domain cookies
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax", // Using lax for better compatibility
       maxAge: 60 * 60 * 24 * 7, // 7 days
       path: "/",
     })
