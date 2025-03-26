@@ -1,28 +1,22 @@
+// This script is used to migrate the database
 const { execSync } = require("child_process")
+const path = require("path")
 
-// This script is used to run Prisma migrations on Netlify
-async function main() {
-  try {
-    console.log("Running Prisma migrations...")
+// Load environment variables
+require("dotenv").config({ path: path.resolve(process.cwd(), ".env.production") })
 
-    // Run Prisma migrations
-    execSync("npx prisma migrate deploy", { stdio: "inherit" })
+console.log("Starting database migration...")
 
-    console.log("Migrations completed successfully")
+try {
+  // Run Prisma migrations
+  execSync("npx prisma migrate deploy", { stdio: "inherit" })
+  console.log("Database migration completed successfully")
 
-    // Optionally seed the database
-    if (process.env.SEED_DB === "true") {
-      console.log("Seeding the database...")
-      execSync("npx prisma db seed", { stdio: "inherit" })
-      console.log("Database seeded successfully")
-    }
-
-    process.exit(0)
-  } catch (error) {
-    console.error("Error running migrations:", error)
-    process.exit(1)
-  }
+  // Generate Prisma client
+  execSync("npx prisma generate", { stdio: "inherit" })
+  console.log("Prisma client generated successfully")
+} catch (error) {
+  console.error("Error during database migration:", error)
+  process.exit(1)
 }
-
-main()
 
