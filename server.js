@@ -1,4 +1,3 @@
-// This file is used by Netlify to run the Next.js app
 const { createServer } = require("http")
 const { parse } = require("url")
 const next = require("next")
@@ -8,11 +7,6 @@ const hostname = "localhost"
 const port = process.env.PORT || 3000
 const app = next({ dev, hostname, port })
 const handle = app.getRequestHandler()
-
-// Load environment variables from .env file in development
-if (dev) {
-  require("dotenv").config()
-}
 
 app.prepare().then(() => {
   createServer(async (req, res) => {
@@ -24,9 +18,13 @@ app.prepare().then(() => {
       res.statusCode = 500
       res.end("Internal Server Error")
     }
-  }).listen(port, (err) => {
-    if (err) throw err
-    console.log(`> Ready on http://${hostname}:${port}`)
   })
+    .once("error", (err) => {
+      console.error(err)
+      process.exit(1)
+    })
+    .listen(port, () => {
+      console.log(`> Ready on http://${hostname}:${port}`)
+    })
 })
 
