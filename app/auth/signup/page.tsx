@@ -38,6 +38,8 @@ export default function SignUpPage() {
     setIsLoading(true)
 
     try {
+      console.log("Attempting to sign up with:", email)
+
       // Call the API directly to get the token
       const response = await fetch("/api/auth/signup", {
         method: "POST",
@@ -45,6 +47,7 @@ export default function SignUpPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ name, email, password }),
+        credentials: "include", // Important for cookies
       })
 
       const data = await response.json()
@@ -53,18 +56,20 @@ export default function SignUpPage() {
         throw new Error(data.error || "Failed to sign up")
       }
 
+      console.log("Sign up successful, storing token")
+
       // Store the token in localStorage
       if (data.token) {
         storeAuthToken(data.token)
       }
 
       // Use the AuthContext signup function to update the UI state
-      const success = await signup(name, email, password)
+      await signup(name, email, password)
 
-      if (success) {
-        // Redirect to the account page
-        router.push("/account")
-      }
+      console.log("Redirecting to account page")
+
+      // Redirect to the account page
+      router.push("/account")
     } catch (error) {
       console.error("Sign up error:", error)
       setError(error instanceof Error ? error.message : "Failed to sign up")
