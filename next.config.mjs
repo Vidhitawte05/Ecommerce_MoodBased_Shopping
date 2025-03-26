@@ -10,13 +10,9 @@ const nextConfig = {
         hostname: '**',
       },
     ],
+    unoptimized: true, // This helps with Netlify deployment
   },
-  // Add this to ensure environment variables are available
-  env: {
-    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
-    NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
-  },
-  // This helps with Netlify deployment
+  // This is important for Netlify
   output: 'standalone',
 }
 
