@@ -6,7 +6,8 @@
   package = "@netlify/plugin-nextjs"
 
 [functions]
-  included_files = ["prisma/**", ".env.production"]
+  # Remove .env.production from included_files since it's causing errors
+  included_files = ["prisma/**"]
   directory = "netlify/functions"
 
 [[redirects]]
@@ -25,5 +26,6 @@
 [build.environment]
   NEXT_USE_NETLIFY_EDGE = "true"
   NODE_VERSION = "18"
-  DATABASE_URL = "postgresql://postgres:Vidhi%402605@db.wpgjwynemtgrtjhwgvin.supabase.co:5432/postgres"
-  NEXT_PUBLIC_API_URL = "https://moodyss.netlify.app/api"
+  # Don't include sensitive information here
+  # Set these in Netlify dashboard instead
+
