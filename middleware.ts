@@ -25,6 +25,7 @@ export function middleware(request: NextRequest) {
   if (
     pathname.startsWith("/_next") ||
     pathname.startsWith("/static") ||
+    pathname.startsWith("/favicon.ico") ||
     publicApiPaths.some((path) => pathname.startsWith(path))
   ) {
     return NextResponse.next()
